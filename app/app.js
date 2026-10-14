@@ -41,7 +41,8 @@
 			var now = Date.now();
 			if (now - lastOpen < 1500) return;
 			lastOpen = now;
-			window.location.href = url;
+			if (window.rmaLog) window.rmaLog('OPENING LINK in 2s: ' + url);
+			setTimeout(function () { window.location.href = url; }, 2000);
 		};
 	}
 
@@ -136,4 +137,60 @@
 	});
 
 	document.body.appendChild(scene);
+
+	/* ===== DEBUG PANEL (test build only) ===== */
+	(function () {
+		var panel = document.createElement('div');
+		panel.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:10002;pointer-events:none;background:rgba(0,0,0,0.75);color:#7CFC00;font:11px/1.35 monospace;padding:6px;white-space:pre-wrap;max-height:45%;overflow:hidden';
+		document.body.appendChild(panel);
+		var lines = [];
+		function log(s) {
+			var d = new Date();
+			lines.unshift(d.toTimeString().slice(0, 8) + ' ' + s);
+			lines = lines.slice(0, 14);
+			panel.textContent = 'DEBUG v' + window.RMA_AR_VERSION + '  screen ' + innerWidth + 'x' + innerHeight + '\n' + lines.join('\n');
+		}
+		window.rmaLog = log;
+		log('debug panel ready');
+		window.addEventListener('error', function (e) { log('JS ERROR: ' + e.message); });
+	
+		var scene = document.querySelector('a-scene');
+		var camEl = document.querySelector('a-camera');
+		var target = document.querySelector('[mindar-image-target]');
+		target.addEventListener('targetFound', function () { log('poster FOUND'); });
+		target.addEventListener('targetLost', function () { log('poster LOST'); });
+	
+		function label(el) {
+			if (!el) return 'none';
+			return el.tagName.toLowerCase() + (el.getAttribute('value') ? '"' + el.getAttribute('value') + '"' : (el.dataset && el.dataset.label ? '"' + el.dataset.label + '"' : ''));
+		}
+		document.querySelectorAll('a-plane.clickable').forEach(function (p, i) {
+			var t = p.nextElementSibling;
+			if (t && t.getAttribute('value')) p.dataset.label = t.getAttribute('value');
+			p.addEventListener('mousedown', function () { log('A-Frame mousedown on ' + label(p)); });
+			p.addEventListener('click', function () { log('A-Frame click on ' + label(p)); });
+		});
+	
+		function report(kind, x, y) {
+			var top = document.elementFromPoint(x, y);
+			var info = kind + ' at ' + Math.round(x) + ',' + Math.round(y) + ' top element: ' + (top ? top.tagName + (top.id ? '#' + top.id : '') + (top.className && top.className.baseVal === undefined ? '.' + top.className : '') : 'none');
+			setTimeout(function () {
+				try {
+					var rc = camEl.components.raycaster, cur = camEl.components.cursor;
+					var cam = camEl.getObject3D('camera');
+					var p = new AFRAME.THREE.Vector3();
+					target.object3D.updateMatrixWorld(true);
+					target.object3D.getWorldPosition(p);
+					var b = cur && cur.canvasBounds;
+					log(info + '\n   ray hits: ' + (rc.intersectedEls.map(label).join(' | ') || 'NOTHING') +
+						'\n   poster visible=' + target.object3D.visible + ' dist=' + Math.round(p.length()) +
+						' rayFar=' + rc.data.far + ' camFar=' + Math.round(cam.far) +
+						'\n   canvas ' + (b ? Math.round(b.width) + 'x' + Math.round(b.height) + ' @' + Math.round(b.left) + ',' + Math.round(b.top) : '?'));
+				} catch (err) { log(info + ' (report failed: ' + err.message + ')'); }
+			}, 60);
+		}
+		document.addEventListener('touchstart', function (e) { var t = e.touches[0]; report('TOUCH', t.clientX, t.clientY); }, { capture: true, passive: true });
+		document.addEventListener('mousedown', function (e) { if (e.isTrusted && !e.detail.intersection) report('MOUSE', e.clientX, e.clientY); }, true);
+	})();
+	
 })();
