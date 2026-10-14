@@ -97,7 +97,10 @@
 		position: '0 0 0',
 		'look-controls': 'enabled: false',
 		cursor: 'fuse: false; rayOrigin: mouse',
-		raycaster: 'far: 10000; objects: .clickable'
+		// far must reach the poster. Distances are measured in pixels of the tracking image, and the
+		// current image is 14044 px wide, so the buttons sit roughly 20,000-100,000 units away.
+		// The old limit of 10000 only worked with the earlier 1000 px tracking image.
+		raycaster: 'far: 1000000; objects: .clickable'
 	}));
 
 	var target = el('a-entity', { 'mindar-image-target': 'targetIndex: 0' });

@@ -1,4 +1,4 @@
-RMA Compliance AR - Full AR experience (version 4.1.0)
+RMA Compliance AR - Full AR experience (version 4.1.1)
 
 Upload the CONTENTS of this folder (not the folder itself) into the existing LMS folder
 that the QR code opens:
