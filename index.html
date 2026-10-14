@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>RMA Compliance AR</title>
+	<!--
+		RMA Compliance AR - loader page (V3)
+
+		This page is deliberately small and should rarely change. It is the page the QR code opens.
+		On every scan it:
+		  1. fetches version.json straight from the server (never from the phone's cache),
+		  2. loads every other file with ?v=<version> added to its address,
+		so a new version.json number forces phones to download the new files.
+
+		To publish an update: change files in app/ (or assets/), then raise the number in version.json.
+		See the "RMA Compliance AR - V3 Deployment Guide" for the full process.
+	-->
+	<style>
+		html, body { margin: 0; height: 100%; background: #000; }
+		#rma-status {
+			position: fixed; inset: 0; z-index: 10000;
+			display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+			padding: 24px; box-sizing: border-box; text-align: center;
+			background: #0b3a52; color: #fff;
+			font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+		}
+		#rma-status.hidden { display: none; }
+		#rma-spinner {
+			width: 40px; height: 40px; border-radius: 50%;
+			border: 4px solid rgba(255, 255, 255, 0.25); border-top-color: #12b4dd;
+			animation: rma-spin 0.9s linear infinite;
+		}
+		#rma-status.error #rma-spinner { display: none; }
+		@keyframes rma-spin { to { transform: rotate(360deg); } }
+		#rma-version {
+			position: fixed; right: 8px; bottom: 8px; z-index: 10001; pointer-events: none;
+			font: 11px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+			color: rgba(255, 255, 255, 0.75); text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+		}
+	</style>
+</head>
+<body>
+	<div id="rma-status">
+		<div id="rma-spinner"></div>
+		<div id="rma-status-text">Loading the RMA Compliance experience…</div>
+	</div>
+	<div id="rma-version"></div>
+
+	<script>
+		(function () {
+			var statusBox = document.getElementById('rma-status');
+			var statusText = document.getElementById('rma-status-text');
+
+			window.rmaShowError = function (message) {
+				statusText.textContent = message;
+				statusBox.className = 'error';
+			};
+
+			function loadScript(src) {
+				return new Promise(function (resolve, reject) {
+					var s = document.createElement('script');
+					s.src = src;
+					s.onload = resolve;
+					s.onerror = function () { reject(new Error('Could not load ' + src)); };
+					document.head.appendChild(s);
+				});
+			}
+
+			// Always ask the server for the current version - never use a cached copy.
+			fetch('version.json?t=' + Date.now(), { cache: 'no-store' })
+				.then(function (res) {
+					if (!res.ok) throw new Error('version.json returned ' + res.status);
+					return res.json();
+				})
+				.catch(function () {
+					// version.json missing or unreadable: still work, but download everything fresh.
+					return { version: 'nocache-' + Date.now() };
+				})
+				.then(function (info) {
+					window.RMA_AR_VERSION = String(info.version);
+					if (window.RMA_AR_VERSION.indexOf('nocache-') !== 0) {
+						document.getElementById('rma-version').textContent = 'v' + window.RMA_AR_VERSION;
+					}
+					var v = '?v=' + encodeURIComponent(window.RMA_AR_VERSION);
+					return loadScript('lib/aframe.min.js' + v)
+						.then(function () { return loadScript('lib/mindar-image-aframe.prod.js' + v); })
+						.then(function () { return loadScript('app/content.js' + v); })
+						.then(function () { return loadScript('app/app.js' + v); });
+				})
+				.catch(function () {
+					window.rmaShowError('Sorry, the experience could not be loaded. Please check your connection and scan the QR code again.');
+				});
+		})();
+	</script>
+</body>
+</html>
