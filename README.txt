@@ -1,8 +1,19 @@
-RMA Compliance AR - single-file version 5.0.0 (Full AR experience)
+RMA Compliance AR - Full AR experience (version 3.1.0)
 
-Upload the CONTENTS of this folder (not the folder itself).
-Everything is in index.html: buttons, links, loading screen and version number.
-To publish an update, Find and Replace every "5.0.0" in index.html with a new number.
+Upload the CONTENTS of this folder (not the folder itself) into the existing LMS folder
+that the QR code opens:
+https://lms.randmutual.co.za/files/RMA_Compliance%20AR%20Experience_V1.00_260317/
 
-assets/ar-target.mind           current tracking image (14044 x 7607 px)
-assets/ar-target-original.mind  tracking image from the original working version (1000 x 1000 px)
+Replace the old index.html. Keep the folder name unchanged, because the printed QR code points to it.
+
+Files
+  index.html      Loader page opened by the QR code. Rarely changes.
+  version.json    Current version number. Raise it with every update.
+  web.config      IIS settings: caching rules and file types (.glb, .mind, .json).
+  app/content.js  Course buttons: labels, sizes and LMS links. Edit this file when courses change.
+  app/app.js      Builds the AR scene.
+  lib/            A-Frame 1.5.0 and MindAR 1.2.5 libraries.
+  assets/         3D city model, medal badge and image-tracking target.
+
+The full process (first-time setup, updates, testing, troubleshooting) is in the
+"RMA Compliance AR - V3 Deployment Guide".

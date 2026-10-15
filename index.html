@@ -1,164 +1,97 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>RMA Compliance AR</title>
-		<!--
-			RMA Compliance AR - single-file version 5.0.0
-			Built on the original working single-HTML version (28 Sep 2026), with these additions:
-			  - loading screen and friendly camera-error message
-			  - version label in the bottom-right corner
-			  - "?v=5.0.0" on every file so phones download fresh copies after an update
-			  - raycaster far raised to 1000000 so taps reach the buttons with the large tracking image
-			  - button text 0.01 in front of its blue backdrop to stop flicker
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>RMA Compliance AR</title>
+	<!--
+		RMA Compliance AR - loader page (V3)
 
-			TO PUBLISH AN UPDATE: change every "5.0.0" in this file to a new number (Find and Replace).
-			TO CHANGE A COURSE: edit the label (value="...") and the link (url: ...) on BOTH the a-plane and a-text lines.
-		-->
-		<style>
-			#rma-status {
-				position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 10000;
-				display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
-				padding: 24px; box-sizing: border-box; text-align: center;
-				background: #0b3a52; color: #fff;
-				font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-			}
-			#rma-spinner {
-				width: 40px; height: 40px; border-radius: 50%;
-				border: 4px solid rgba(255, 255, 255, 0.25); border-top-color: #12b4dd;
-				animation: rma-spin 0.9s linear infinite;
-			}
-			#rma-status.error #rma-spinner { display: none; }
-			@keyframes rma-spin { to { transform: rotate(360deg); } }
-			#rma-version {
-				position: fixed; right: 8px; bottom: 8px; z-index: 10001; pointer-events: none;
-				font: 11px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-				color: rgba(255, 255, 255, 0.75); text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
-			}
-		</style>
-		<script src="lib/aframe.min.js?v=5.0.0"></script>
-		<script src="lib/mindar-image-aframe.prod.js?v=5.0.0"></script>
-		<script>
-			// Same link behaviour as the original working version: open the course on 'click'.
-			AFRAME.registerComponent('go-to-url', {
-				schema: { url: { type: 'string' } },
-				init: function () {
-					this.el.addEventListener('click', () => {
-						// same-tab navigation (most reliable on mobile)
-						window.location.href = this.data.url;
-					});
-				}
-			});
-		</script>
-	</head>
-	<body>
-		<!-- Loading screen: removed completely once the camera view starts, so it can never block taps. -->
-		<div id="rma-status">
-			<div id="rma-spinner"></div>
-			<div id="rma-status-text">Loading the RMA Compliance experience…</div>
-		</div>
-		<div id="rma-version">v5.0.0</div>
+		This page is deliberately small and should rarely change. It is the page the QR code opens.
+		On every scan it:
+		  1. fetches version.json straight from the server (never from the phone's cache),
+		  2. loads every other file with ?v=<version> added to its address,
+		so a new version.json number forces phones to download the new files.
 
-		<a-scene
-		  mindar-image="imageTargetSrc: assets/ar-target.mind?v=5.0.0; filterMinCF: 0.001; filterBeta: 0.005; warmupTolerance: 5; missTolerance: 8;"
-		  color-space="sRGB"
-		  loading-screen="enabled: false"
-		  renderer="alpha: true; colorManagement: true; physicallyCorrectLights: true"
-		  vr-mode-ui="enabled: false"
-		  xr-mode-ui="enabled: false"
-		  device-orientation-permission-ui="enabled: false">
+		To publish an update: change files in app/ (or assets/), then raise the number in version.json.
+		See the "RMA Compliance AR - V3 Deployment Guide" for the full process.
+	-->
+	<style>
+		html, body { margin: 0; height: 100%; background: #000; }
+		#rma-status {
+			position: fixed; inset: 0; z-index: 10000;
+			display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+			padding: 24px; box-sizing: border-box; text-align: center;
+			background: #0b3a52; color: #fff;
+			font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+		}
+		#rma-status.hidden { display: none; }
+		#rma-spinner {
+			width: 40px; height: 40px; border-radius: 50%;
+			border: 4px solid rgba(255, 255, 255, 0.25); border-top-color: #12b4dd;
+			animation: rma-spin 0.9s linear infinite;
+		}
+		#rma-status.error #rma-spinner { display: none; }
+		@keyframes rma-spin { to { transform: rotate(360deg); } }
+		#rma-version {
+			position: fixed; right: 8px; bottom: 8px; z-index: 10001; pointer-events: none;
+			font: 11px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+			color: rgba(255, 255, 255, 0.75); text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+		}
+	</style>
+</head>
+<body>
+	<div id="rma-status">
+		<div id="rma-spinner"></div>
+		<div id="rma-status-text">Loading the RMA Compliance experience…</div>
+	</div>
+	<div id="rma-version"></div>
 
-			<a-assets>
-				<a-asset-item id="rma-city" src="assets/rma-city.glb?v=5.0.0"></a-asset-item>
-				<img id="hover-badge" src="assets/hover-badge.png?v=5.0.0" />
-			</a-assets>
+	<script>
+		(function () {
+			var statusBox = document.getElementById('rma-status');
+			var statusText = document.getElementById('rma-status-text');
 
-			<!-- far: 1000000 is required with the large (14044 px) tracking image. 10000 is too short. -->
-			<a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse" raycaster="far: 1000000; objects: .clickable"></a-camera>
+			window.rmaShowError = function (message) {
+				statusText.textContent = message;
+				statusBox.className = 'error';
+			};
 
-			<a-entity mindar-image-target="targetIndex: 0">
-				<a-image src="#hover-badge" position="0 0 0.2" width="0.8" height="0.8" material="transparent: true; alphaTest: 0.5; shader: flat"></a-image>
-				<a-gltf-model src="#rma-city" position="0 0 0" rotation="0 0 0" scale="0.2 0.2 0.2" animation="property: rotation; to: 0 0 360; dur: 50000; easing: linear; loop: true"></a-gltf-model>
-
-				<!-- Layout notes (from the original):
-				     Position = X (left/right), Y (up/down), Z (depth). Rows are 0.15 apart in Y.
-				     Text X is 0.73 (or -0.73 on the left). Blue block X = 0.70 + width x 0.04 (mirrored on the left).
-				     Right side: text left-aligned and anchored. Left side: text right-aligned and anchored.
-				     Blocks sit at Z 0, text at Z 0.01 (just in front, so it does not flicker). -->
-
-				<!-- ===== RIGHT SIDE (top to bottom) ===== -->
-				<!-- Business Continuity -->
-				<a-plane class="clickable" scale="0.08 0.08 0.08" position="0.9 0.3 0" width="5" height="1.5" material="color: #12b4dd; shader: flat; opacity: 0.95" go-to-url="url: https://lms.randmutual.co.za/student/player_scorm.aspx?idlp=42832&amp;ref=qrcode"></a-plane>
-				<a-text value="Business Continuity" scale="0.08 0.08 0.08" position="0.73 0.3 0.01" align="left" anchor="left" color="#FFFFFF" width="10" class="clickable" go-to-url="url: https://lms.randmutual.co.za/student/player_scorm.aspx?idlp=42832&amp;ref=qrcode"></a-text>
-
-				<!-- Code of Ethics -->
-				<a-plane class="clickable" scale="0.08 0.08 0.08" position="0.86 0.15 0" width="4" height="1.5" material="color: #12b4dd; shader: flat; opacity: 0.95" go-to-url="url: https://lms.randmutual.co.za/student/player_scorm.aspx?idlp=42678&amp;ref=qrcode"></a-plane>
-				<a-text value="Code of Ethics" scale="0.08 0.08 0.08" position="0.73 0.15 0.01" align="left" anchor="left" color="#FFFFFF" width="10" class="clickable" go-to-url="url: https://lms.randmutual.co.za/student/player_scorm.aspx?idlp=42678&amp;ref=qrcode"></a-text>
-
-				<!-- Risk Management -->
-				<a-plane class="clickable" scale="0.08 0.08 0.08" position="0.88 0 0" width="4.5" height="1.5" material="color: #12b4dd; shader: flat; opacity: 0.95" go-to-url="url: https://lms.randmutual.co.za/student/player_scorm.aspx?idlp=42830&amp;ref=qrcode"></a-plane>
-				<a-text value="Risk Management" scale="0.08 0.08 0.08" position="0.73 0 0.01" align="left" anchor="left" color="#FFFFFF" width="10" class="clickable" go-to-url="url: https://lms.randmutual.co.za/student/player_scorm.aspx?idlp=42830&amp;ref=qrcode"></a-text>
-
-				<!-- Treating Customers Fairly -->
-				<a-plane class="clickable" scale="0.08 0.08 0.08" position="0.93 -0.15 0" width="5.75" height="1.5" material="color: #12b4dd; shader: flat; opacity: 0.95" go-to-url="url: https://lms.randmutual.co.za/student/player_scorm.aspx?idlp=42831&amp;ref=qrcode"></a-plane>
-				<a-text value="Treating Customers Fairly" scale="0.08 0.08 0.08" position="0.73 -0.15 0.01" align="left" anchor="left" color="#FFFFFF" width="10" class="clickable" go-to-url="url: https://lms.randmutual.co.za/student/player_scorm.aspx?idlp=42831&amp;ref=qrcode"></a-text>
-
-				<!-- Occupational Health and Safety -->
-				<a-plane class="clickable" scale="0.08 0.08 0.08" position="0.98 -0.3 0" width="7" height="1.5" material="color: #12b4dd; shader: flat; opacity: 0.95" go-to-url="url: https://lms.randmutual.co.za/student/player_scorm.aspx?idlp=42575&amp;ref=qrcode"></a-plane>
-				<a-text value="Occupational Health and Safety" scale="0.08 0.08 0.08" position="0.73 -0.3 0.01" align="left" anchor="left" color="#FFFFFF" width="10" class="clickable" go-to-url="url: https://lms.randmutual.co.za/student/player_scorm.aspx?idlp=42575&amp;ref=qrcode"></a-text>
-
-				<!-- Financial Crime Risk Management -->
-				<a-plane class="clickable" scale="0.08 0.08 0.08" position="1 -0.45 0" width="7.5" height="1.5" material="color: #12b4dd; shader: flat; opacity: 0.95" go-to-url="url: https://lms.randmutual.co.za/student/player_scorm.aspx?idlp=42587&amp;ref=qrcode"></a-plane>
-				<a-text value="Financial Crime Risk Management" scale="0.08 0.08 0.08" position="0.73 -0.45 0.01" align="left" anchor="left" color="#FFFFFF" width="10" class="clickable" go-to-url="url: https://lms.randmutual.co.za/student/player_scorm.aspx?idlp=42587&amp;ref=qrcode"></a-text>
-
-				<!-- ===== LEFT SIDE (top to bottom) ===== -->
-				<!-- AML: What is Anti Money Laundering? -->
-				<a-plane class="clickable" scale="0.08 0.08 0.08" position="-1.04 0.3 0" width="8.5" height="1.5" material="color: #12b4dd; shader: flat; opacity: 0.95" go-to-url="url: https://lms.randmutual.co.za/admin_item_published.aspx?id=42518&amp;ipd=51972&amp;idtype=10"></a-plane>
-				<a-text value="AML: What is Anti Money Laundering?" scale="0.08 0.08 0.08" position="-0.73 0.3 0.01" align="right" anchor="right" color="#FFFFFF" width="10" class="clickable" go-to-url="url: https://lms.randmutual.co.za/admin_item_published.aspx?id=42518&amp;ipd=51972&amp;idtype=10"></a-text>
-
-				<!-- AML: The Legal Framework -->
-				<a-plane class="clickable" scale="0.08 0.08 0.08" position="-0.94 0.15 0" width="6" height="1.5" material="color: #12b4dd; shader: flat; opacity: 0.95" go-to-url="url: https://lms.randmutual.co.za/admin_item_published.aspx?id=42515&amp;ipd=51972&amp;idtype=10"></a-plane>
-				<a-text value="AML: The Legal Framework" scale="0.08 0.08 0.08" position="-0.73 0.15 0.01" align="right" anchor="right" color="#FFFFFF" width="10" class="clickable" go-to-url="url: https://lms.randmutual.co.za/admin_item_published.aspx?id=42515&amp;ipd=51972&amp;idtype=10"></a-text>
-
-				<!-- AML: Anti Money Laundering Roles -->
-				<a-plane class="clickable" scale="0.08 0.08 0.08" position="-1.02 0 0" width="8" height="1.5" material="color: #12b4dd; shader: flat; opacity: 0.95" go-to-url="url: https://lms.randmutual.co.za/admin_item_published.aspx?id=42514&amp;ipd=51972&amp;idtype=10"></a-plane>
-				<a-text value="AML: Anti Money Laundering Roles" scale="0.08 0.08 0.08" position="-0.73 0 0.01" align="right" anchor="right" color="#FFFFFF" width="10" class="clickable" go-to-url="url: https://lms.randmutual.co.za/admin_item_published.aspx?id=42514&amp;ipd=51972&amp;idtype=10"></a-text>
-
-				<!-- AML: Suspicious and Unusual Behaviours -->
-				<a-plane class="clickable" scale="0.08 0.08 0.08" position="-1.06 -0.15 0" width="9" height="1.5" material="color: #12b4dd; shader: flat; opacity: 0.95" go-to-url="url: https://lms.randmutual.co.za/admin_item_published.aspx?id=42517&amp;ipd=51972&amp;idtype=10"></a-plane>
-				<a-text value="AML: Suspicious and Unusual Behaviours" scale="0.08 0.08 0.08" position="-0.73 -0.15 0.01" align="right" anchor="right" color="#FFFFFF" width="10" class="clickable" go-to-url="url: https://lms.randmutual.co.za/admin_item_published.aspx?id=42517&amp;ipd=51972&amp;idtype=10"></a-text>
-
-				<!-- AML: Consequences of non-compliance -->
-				<a-plane class="clickable" scale="0.08 0.08 0.08" position="-1.06 -0.3 0" width="9" height="1.5" material="color: #12b4dd; shader: flat; opacity: 0.95" go-to-url="url: https://lms.randmutual.co.za/admin_item_published.aspx?id=42516&amp;ipd=51972&amp;idtype=10"></a-plane>
-				<a-text value="AML: Consequences of non-compliance" scale="0.08 0.08 0.08" position="-0.73 -0.3 0.01" align="right" anchor="right" color="#FFFFFF" width="10" class="clickable" go-to-url="url: https://lms.randmutual.co.za/admin_item_published.aspx?id=42516&amp;ipd=51972&amp;idtype=10"></a-text>
-
-				<!-- The POPI Act -->
-				<a-plane class="clickable" scale="0.08 0.08 0.08" position="-0.84 -0.45 0" width="3.5" height="1.5" material="color: #12b4dd; shader: flat; opacity: 0.95" go-to-url="url: https://lms.randmutual.co.za/student/player_scorm.aspx?idlp=42592&amp;ref=qrcode"></a-plane>
-				<a-text value="The POPI Act" scale="0.08 0.08 0.08" position="-0.73 -0.45 0.01" align="right" anchor="right" color="#FFFFFF" width="10" class="clickable" go-to-url="url: https://lms.randmutual.co.za/student/player_scorm.aspx?idlp=42592&amp;ref=qrcode"></a-text>
-
-			</a-entity>
-
-			<a-entity light="type: ambient; color: #FFF; intensity: 1.2"></a-entity>
-			<a-entity light="type: directional; color: #FFF; intensity: 5.0" position="1 2 1"></a-entity>
-			<a-entity light="type: directional; color: #FFF; intensity: 3.5" position="-1 2 0"></a-entity>
-		</a-scene>
-
-		<script>
-			(function () {
-				var scene = document.querySelector('a-scene');
-				var status = document.getElementById('rma-status');
-				// Remove the loading screen from the page entirely once the scene is rendering.
-				scene.addEventListener('renderstart', function () {
-					if (status && status.parentNode) status.parentNode.removeChild(status);
+			function loadScript(src) {
+				return new Promise(function (resolve, reject) {
+					var s = document.createElement('script');
+					s.src = src;
+					s.onload = resolve;
+					s.onerror = function () { reject(new Error('Could not load ' + src)); };
+					document.head.appendChild(s);
 				});
-				scene.addEventListener('arError', function () {
-					if (!status.parentNode) document.body.appendChild(status);
-					status.className = 'error';
-					document.getElementById('rma-status-text').textContent =
-						'We could not start the camera. Please allow camera access, or open this link in Chrome or Safari, then scan the QR code again.';
+			}
+
+			// Always ask the server for the current version - never use a cached copy.
+			fetch('version.json?t=' + Date.now(), { cache: 'no-store' })
+				.then(function (res) {
+					if (!res.ok) throw new Error('version.json returned ' + res.status);
+					return res.json();
+				})
+				.catch(function () {
+					// version.json missing or unreadable: still work, but download everything fresh.
+					return { version: 'nocache-' + Date.now() };
+				})
+				.then(function (info) {
+					window.RMA_AR_VERSION = String(info.version);
+					if (window.RMA_AR_VERSION.indexOf('nocache-') !== 0) {
+						document.getElementById('rma-version').textContent = 'v' + window.RMA_AR_VERSION;
+					}
+					var v = '?v=' + encodeURIComponent(window.RMA_AR_VERSION);
+					return loadScript('lib/aframe.min.js' + v)
+						.then(function () { return loadScript('lib/mindar-image-aframe.prod.js' + v); })
+						.then(function () { return loadScript('app/content.js' + v); })
+						.then(function () { return loadScript('app/app.js' + v); });
+				})
+				.catch(function () {
+					window.rmaShowError('Sorry, the experience could not be loaded. Please check your connection and scan the QR code again.');
 				});
-			})();
-		</script>
-	</body>
+		})();
+	</script>
+</body>
 </html>
